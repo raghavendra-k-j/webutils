@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Color to Flutter Code Converter</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/mdbassit/Coloris@latest/dist/coloris.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/gh/mdbassit/Coloris@latest/dist/coloris.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  </head>
+  <body>
+    <div class="bg-white shadow-sm p-3 sticky-top border-bottom">
+      <div class="d-flex">
+        <input
+          id="baseColorPicker"
+          type="text"
+          data-coloris
+          class="form-control"
+          placeholder="Enter color"
+          style="width: 300px"
+        />
+        <input
+          type="text"
+          class="form-control ms-2"
+          id="variableName"
+          placeholder="Enter variable name"
+          value="primary"
+        />
+        <div class="input-group">
+          <input
+            type="number"
+            class="form-control ms-2"
+            id="percentage"
+            placeholder="Enter percentage"
+            ,
+            value="10"
+          />
+          <div class="input-group-text">%</div>
+        </div>
+        <button class="btn btn-primary ms-2" onclick="generateColor()">
+          Generate
+        </button>
+      </div>
+    </div>
+
+    <div class="p-3">
+      <div class="d-flex flex-column">
+        <div id="shades" class="d-flex flex-row border p-1 shadow-sm"></div>
+      </div>
+      <div>
+        <div id="tints" class="d-flex flex-row border p-1 shadow-sm"></div>
+      </div>
+    </div>
+
+    <div class="p-3 m-3 bg-light text-dark border rounded-sm shadow-sm">
+      <pre id="flutter-code"></pre>
+    </div>
+
+    <script src="https://unpkg.com/values.js"></script>
+
+    <script>
+      Coloris.setInstance("#baseColorPicker", {
+        theme: "polaroid",
+        themeMode: "light",
+        alpha: false,
+        formatToggle: true,
+        defaultColor: "#000000",
+      });
+
+      function createColorElementDiv(color) {
+        var hex = color.hexString();
+
+        var colorContainer = document.createElement("div");
+        colorContainer.classList.add("shadow-sm");
+        colorContainer.style.backgroundColor = hex;
+        colorContainer.style.width = "50px";
+        colorContainer.style.height = "50px";
+        colorContainer.style.margin = "5px";
+        colorContainer.title = hex;
+        colorContainer.onclick = function () {
+          copyToClipboard(hex);
+        };
+
+        return colorContainer;
+      }
+
+      function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+          console.log("Copied to clipboard: " + text);
+        });
+      }
+
+      function createColorWithPreview(hex, code) {
+        return (
+          '<div style="display: flex; align-items: center; margin-bottom: 5px;">' +
+          '<div style="width: 20px; height: 20px; background-color: ' +
+          hex +
+          '; margin-right: 10px;"></div>' +
+          "<span>" +
+          code +
+          "</span>" +
+          "</div>"
+        );
+      }
+
+      function generateColor() {
+        var selectedColor = document.getElementById("baseColorPicker").value;
+        var variableName = document.getElementById("variableName").value;
+        var percentage = parseInt(document.getElementById("percentage").value, 10);
+
+        if (selectedColor == "") {
+          selectedColor = "#1e90ff";
+        }
+
+        if (!variableName) {
+          variableName = "primary";
+        }
+
+        if (!percentage) {
+          percentage = 10;
+        }
+
+        // Generate the Values instance
+        var values = new Values(selectedColor);
+
+        // Print the values
+        var shadesContainer = document.getElementById("shades");
+        var tintsContainer = document.getElementById("tints");
+
+        shadesContainer.innerHTML = "";
+        tintsContainer.innerHTML = "";
+
+        var primaryColor = values.hexString();
+        var primaryColorPreview = createColorWithPreview(
+          primaryColor,
+          "static const Color " +
+            variableName +
+            " = Color(0xFF" +
+            primaryColor.slice(1) +
+            ");"
+        );
+
+        var flutterCode = primaryColorPreview;
+
+        // Generate shades and tints
+        var shades = values.shades(percentage);
+        var tints = values.tints(percentage);
+
+        shades.forEach(function (shade) {
+          var hex = shade.hexString();
+          var colorElement = createColorElementDiv(shade);
+          shadesContainer.appendChild(colorElement);
+
+          var colorPreview = createColorWithPreview(
+            hex,
+            "static const Color " +
+              variableName +
+              "Shade" +
+              shade.weight +
+              " = Color(0xFF" +
+              hex.slice(1) +
+              ");"
+          );
+          flutterCode += colorPreview;
+        });
+
+        tints.forEach(function (tint) {
+          var hex = tint.hexString();
+          var colorElement = createColorElementDiv(tint);
+          tintsContainer.appendChild(colorElement);
+
+          var colorPreview = createColorWithPreview(
+            hex,
+            "static const Color " +
+              variableName +
+              "Tint" +
+              tint.weight +
+              " = Color(0xFF" +
+              hex.slice(1) +
+              ");"
+          );
+          flutterCode += colorPreview;
+        });
+
+        document.getElementById("flutter-code").innerHTML = flutterCode;
+      }
+
+      // When Document is ready
+      $(document).ready(function () {
+        generateColor();
+      });
+    </script>
+  </body>
+</html>
